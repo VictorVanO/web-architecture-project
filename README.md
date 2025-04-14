@@ -22,7 +22,7 @@ npm install
 npm run dev -- --open
 
 # install prisma for the databases
-npm  install prisma --save-dev
+npm install prisma --save-dev
 
 # setup prisma with sqlite
 npx prisma init --datasource-provider sqlite
