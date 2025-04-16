@@ -6,24 +6,27 @@ import { getUser, logoutAction } from '~/lib/auth/user';
 export default function Nav() {
   const location = useLocation();
   const active = (path: string) =>
-    path == location.pathname ? "border-sky-600" : "border-transparent hover:border-sky-600";
+    path == location.pathname ? "border-dark-500" : "border-transparent hover:border-gray-400";
   
   const user = createAsyncStore(() => getUser(), {
     initialValue: null,
   });
   
   return (
-    <nav class="bg-sky-800">
-      <div class="container flex items-center justify-between p-3 text-gray-200">
+    <nav class="bg-white text-gray-900 border-b border-gray-200 shadow-sm">
+      <div class="container flex items-center justify-between p-3 text-black-900">
         <ul class="flex items-center">
           <li class={`border-b-2 ${active("/")} mx-1.5 sm:mx-6`}>
-            <a href="/">Home</a>
+            <a class="hover:text-gray-500" href="/">EatReal.</a>
           </li>
           <li class={`border-b-2 ${active("/about")} mx-1.5 sm:mx-6`}>
-            <a href="/about">About</a>
+            <a class="hover:text-gray-500" href="/about">About</a>
           </li>
           <li class={`border-b-2 ${active("/tasks")} mx-1.5 sm:mx-6`}>
-            <a href="/tasks">Tasks</a>
+            <a class="hover:text-gray-500" href="/tasks">Tasks</a>
+          </li>
+          <li class={`border-b-2 ${active("/tasks")} mx-1.5 sm:mx-6`}>
+            <a class="hover:text-gray-500" href="/map">Map</a>
           </li>
         </ul>
         
