@@ -11,7 +11,7 @@ export default function App() {
       root={props => (
         <>
           <MetaProvider>
-            <Title>Home Title</Title>
+            <Title>EatReal. - Vos quotidiens en repas</Title>
           </MetaProvider>
           <Nav />
           <Suspense>{props.children}</Suspense>
