@@ -29,6 +29,9 @@ npx prisma init --datasource-provider sqlite
 
 # create SQL migration file
 npx prisma migrate dev --name init
+
+# if there is an update in the prisma schema (specify the change)
+npx prisma migrate dev --name add-user
 ```
 
 ## Building
