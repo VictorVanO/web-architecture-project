@@ -1,13 +1,23 @@
-import { createSignal, createEffect } from "solid-js";
+import { createSignal, createEffect, Show } from "solid-js";
 import { SolidLeafletMap } from "solidjs-leaflet";
+import { useNavigate } from "@solidjs/router";
+import { createAsyncStore } from '@solidjs/router';
+import { getUser } from '~/lib/auth/user';
 import "leaflet/dist/leaflet.css";
 
 let mapInstance: any;
 
 export default function Map() {
+  const navigate = useNavigate();
   const [selectedCountry, setSelectedCountry] = createSignal("");
   const [query, setQuery] = createSignal("");
   const [results, setResults] = createSignal<any[]>([]);
+  const [selectedPlace, setSelectedPlace] = createSignal<any>(null);
+  
+  // Get the current user
+  const user = createAsyncStore(() => getUser(), {
+    initialValue: null,
+  });
 
   const countries = [
     "Belgium",
@@ -45,6 +55,23 @@ export default function Map() {
     }
     setResults([]);
     setQuery(result.display_name);
+    setSelectedPlace(result);
+  };
+  
+  const handleAddReview = () => {
+    if (!selectedPlace()) return;
+    
+    // Navigate to the new review page with the selected place info
+    navigate('/new', { 
+      state: { 
+        placeInfo: {
+          name: selectedPlace().display_name?.split(',')[0] || 'Unknown Restaurant',
+          latitude: selectedPlace().lat,
+          longitude: selectedPlace().lon,
+          address: selectedPlace().display_name,
+        }
+      } 
+    });
   };
 
   return (
@@ -84,6 +111,17 @@ export default function Map() {
             ))}
           </ul>
         )}
+        
+        <Show when={selectedPlace() && user()}>
+          <div class="mt-4">
+            <button
+              onClick={handleAddReview}
+              class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+            >
+              Add a review for this restaurant
+            </button>
+          </div>
+        </Show>
       </div>
 
       <div class="w-full h-[600px] max-w-5xl mx-auto relative z-0">
