@@ -23,6 +23,8 @@ model User {
   friends    User[]   @relation("UserFriends")
   friendOf   User[]   @relation("UserFriends")
   visits     Visit[]
+  
+  accompaniedVisits Visit[] @relation("VisitCompanions")
 }
 
 model Restaurant {
@@ -30,6 +32,7 @@ model Restaurant {
   name       String
   latitude   Float
   longitude  Float
+  address    String?
 
   visits     Visit[]
 }
@@ -43,9 +46,11 @@ model Visit {
   restaurantId Int
 
   review     String?
-  note       Float?
+  rating     Int?
   price      String?
   visitedAt  DateTime @default(now())
+  
+  companions   User[]   @relation("VisitCompanions")
 
   images     Image[]
 }
