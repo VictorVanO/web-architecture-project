@@ -200,6 +200,21 @@ export const addReview = async (form: FormData) => {
       companions: true
     }
   })
+
+  // Handle image uploads if any
+  const imageUrls = form.getAll('imageUrls')
+  
+  if (imageUrls.length > 0) {
+    const imageData = imageUrls.map(url => ({
+      url: url.toString(),
+      visitId: review.id
+    }))
+    
+    // Create image records
+    await db.image.createMany({
+      data: imageData
+    })
+  }
   
   return review
 }
