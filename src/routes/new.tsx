@@ -37,7 +37,7 @@ export default function New() {
   const [selectedCompanions, setSelectedCompanions] = createSignal<number[]>([])
   const [error, setError] = createSignal('')
   const [images, setImages] = createSignal<string[]>([])
-
+  
   // For image preview
   const [imagePreviewUrls, setImagePreviewUrls] = createSignal<string[]>([])
   
@@ -52,6 +52,14 @@ export default function New() {
     }
   })
   
+  // Handle successful submission
+  createEffect(() => {
+    if (reviewSubmission.result && !reviewSubmission.pending) {
+      // Navigate to home or reviews page after successful submission
+      navigate('/', { replace: true })
+    }
+  })
+  
   // Handle companion selection toggle
   const toggleCompanion = (id: number) => {
     setSelectedCompanions(prev => {
@@ -62,7 +70,7 @@ export default function New() {
       }
     })
   }
-
+  
   // Handle image upload
   const handleImageUpload = (e: Event) => {
     const input = e.target as HTMLInputElement
@@ -124,7 +132,9 @@ export default function New() {
           if (rating() === 0) {
             e.preventDefault()
             setError('Please select a rating')
+            return
           }
+          setError('')
         }}
       >
         {/* Restaurant Info Section */}
@@ -193,7 +203,7 @@ export default function New() {
             />
           </div>
         </div>
-        
+
         {/* Review Section */}
         <div class="mb-8">
           <h2 class="text-xl font-semibold mb-4 pb-2 border-b">Your Review</h2>
@@ -247,6 +257,52 @@ export default function New() {
               placeholder="Share your experience at this restaurant..."
             />
           </div>
+          
+          {/* Image Upload Section */}
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+              Food Images
+            </label>
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*"
+              onChange={handleImageUpload}
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+            <p class="text-xs text-gray-500 mt-1">You can upload multiple images of your meal</p>
+            
+            {/* Image Previews */}
+            <Show when={imagePreviewUrls().length > 0}>
+              <div class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                <For each={imagePreviewUrls()}>
+                  {(url, index) => (
+                    <div class="relative">
+                      <img 
+                        src={url} 
+                        alt={`Food image ${index() + 1}`}
+                        class="w-full h-32 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index())}
+                        class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+            
+            {/* Hidden inputs for image URLs */}
+            <For each={images()}>
+              {(imageUrl) => (
+                <input type="hidden" name="imageUrls" value={imageUrl} />
+              )}
+            </For>
+          </div>
         </div>
         
         {/* Companions Section */}
@@ -280,9 +336,9 @@ export default function New() {
         </Show>
         
         {/* Error message */}
-        <Show when={error()}>
+        <Show when={error() || (reviewSubmission.result && reviewSubmission.result.error)}>
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-            <p>{error()}</p>
+            <p>{error() || reviewSubmission.result?.error || 'An error occurred while submitting your review'}</p>
           </div>
         </Show>
         
