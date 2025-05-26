@@ -6,7 +6,7 @@ import { addReviewAction, getFriends, getAllUsers } from '~/lib/review'
 import Button from '~/components/Button'
 
 export const route = {
-  load: async () => {
+  preload: async () => {
     await requireAuth()
   },
 } satisfies RouteDefinition

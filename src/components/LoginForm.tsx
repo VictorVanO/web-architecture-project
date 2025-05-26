@@ -46,9 +46,9 @@ export default function LoginForm() {
           />
         </div>
         
-        <Show when={error() || (loginSubmission.result && !loginSubmission.result.success)}>
+        <Show when={error() || (loginSubmission.result && loginSubmission.result.error)}>
           <div class="mb-4 text-red-500 text-sm">
-            {error() || (loginSubmission.result?.error || 'Authentication failed')}
+            {error() || loginSubmission.result?.error || 'Authentication failed'}
           </div>
         </Show>
         

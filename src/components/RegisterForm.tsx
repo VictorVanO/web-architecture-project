@@ -13,6 +13,10 @@ export default function RegisterForm() {
       setError('Passwords do not match')
       return false
     }
+    if (password().length < 8) {
+      setError('Password must be at least 8 characters long')
+      return false
+    }
     return true
   }
   
@@ -25,6 +29,7 @@ export default function RegisterForm() {
         onSubmit={(e) => {
           if (!validatePasswords()) {
             e.preventDefault()
+            return
           }
           // Reset error messages on new submission
           setError('')
@@ -75,9 +80,9 @@ export default function RegisterForm() {
           />
         </div>
         
-        <Show when={error()}>
+        <Show when={error() || (registerSubmission.result && registerSubmission.result.error)}>
           <div class="mb-4 text-red-500 text-sm">
-            {error()}
+            {error() || registerSubmission.result?.error || 'Registration failed'}
           </div>
         </Show>
         

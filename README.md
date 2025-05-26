@@ -32,6 +32,9 @@ npx prisma migrate dev --name init
 
 # if there is an update in the prisma schema (specify the change)
 npx prisma migrate dev --name add-user
+
+# applies all pending migrations to the production database
+npx prisma migrate deploy"
 ```
 
 ## Building
