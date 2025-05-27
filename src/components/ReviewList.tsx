@@ -5,6 +5,7 @@ import { getReviews } from '~/lib/review'
 export default function ReviewList() {
   const reviews = createAsyncStore(() => getReviews(), {
     initialValue: [],
+    deferStream: true,
   })
   
   const formatDate = (date: Date | string) => {

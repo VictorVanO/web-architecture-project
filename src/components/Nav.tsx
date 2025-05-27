@@ -10,6 +10,7 @@ export default function Nav() {
   
   const user = createAsyncStore(() => getUser(), {
     initialValue: null,
+    deferStream: true,
   });
   
   return (

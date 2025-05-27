@@ -56,8 +56,14 @@ export default function New() {
   createEffect(() => {
     if (reviewSubmission.result && !reviewSubmission.pending) {
       if (reviewSubmission.result.success) {
-        // Navigate to home after successful submission
-        navigate('/', { replace: true })
+        // Small delay to ensure the database transaction is complete
+        setTimeout(() => {
+          // Force refresh by navigating with state that triggers revalidation
+          navigate('/', { 
+            replace: true,
+            state: { refreshUser: true, timestamp: Date.now() }
+          })
+        }, 100)
       }
     }
   })
@@ -338,7 +344,7 @@ export default function New() {
         </Show>
         
         {/* Error message */}
-        <Show when={error() || (reviewSubmission.result && reviewSubmission.result.success)}>
+        <Show when={error() || (reviewSubmission.result && !reviewSubmission.result.success)}>
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
             <p>{error() || reviewSubmission.result?.error || 'An error occurred while submitting your review'}</p>
           </div>

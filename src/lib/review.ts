@@ -1,4 +1,4 @@
-import { action, query } from '@solidjs/router'
+import { action, query, revalidate } from '@solidjs/router'
 import { db } from './db'
 import { z } from 'zod'
 import { requireAuth } from './auth/middleware'
@@ -43,6 +43,9 @@ export const getReviews = query(async () => {
           lastName: true,
         }
       }
+    },
+    orderBy: {
+      visitedAt: 'desc'
     }
   })
 }, 'getReviews')
@@ -67,6 +70,9 @@ export const getUserReviews = query(async (userId?: number) => {
           lastName: true,
         }
       }
+    },
+    orderBy: {
+      visitedAt: 'desc'
     }
   })
 }, 'getUserReviews')
@@ -220,6 +226,11 @@ export const addReview = async (form: FormData) => {
       })
     }
     
+    // Revalidate queries to refresh the UI
+    await revalidate('getReviews')
+    await revalidate('getUserReviews')
+    await revalidate('getUser') // This is crucial - revalidate user state
+    
     return { success: true, review }
   } catch (error) {
     console.error('Add review error:', error)
@@ -254,6 +265,10 @@ export const deleteReview = action(async (id: number) => {
   await db.visit.delete({
     where: { id }
   })
+  
+  // Revalidate queries
+  await revalidate('getReviews')
+  await revalidate('getUserReviews')
   
   return { success: true }
 }, 'deleteReview')
