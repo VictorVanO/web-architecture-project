@@ -226,10 +226,14 @@ export const addReview = async (form: FormData) => {
       })
     }
     
-    // Revalidate queries to refresh the UI
-    await revalidate('getReviews')
-    await revalidate('getUserReviews')
-    await revalidate('getUser') // This is crucial - revalidate user state
+    // Force revalidation of all relevant queries
+    await Promise.all([
+      revalidate('getReviews'),
+      revalidate('getUserReviews'),
+      revalidate('getUser'), // This is crucial for navbar state
+      revalidate('getFriends'),
+      revalidate('getAllUsers')
+    ])
     
     return { success: true, review }
   } catch (error) {
@@ -267,8 +271,10 @@ export const deleteReview = action(async (id: number) => {
   })
   
   // Revalidate queries
-  await revalidate('getReviews')
-  await revalidate('getUserReviews')
+  await Promise.all([
+    revalidate('getReviews'),
+    revalidate('getUserReviews')
+  ])
   
   return { success: true }
 }, 'deleteReview')

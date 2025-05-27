@@ -10,7 +10,7 @@ export default function Nav() {
   
   const user = createAsyncStore(() => getUser(), {
     initialValue: null,
-    deferStream: true,
+    deferStream: true, // This helps with SSR/hydration issues
   });
   
   return (

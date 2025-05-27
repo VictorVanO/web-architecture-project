@@ -5,7 +5,7 @@ import { getReviews } from '~/lib/review'
 export default function ReviewList() {
   const reviews = createAsyncStore(() => getReviews(), {
     initialValue: [],
-    deferStream: true,
+    deferStream: true, // This helps with SSR/hydration issues
   })
   
   const formatDate = (date: Date | string) => {

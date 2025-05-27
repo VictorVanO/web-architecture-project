@@ -8,7 +8,7 @@ import { getUser } from '~/lib/auth/user';
 export default function Home() {
   const user = createAsyncStore(() => getUser(), {
     initialValue: null,
-    deferStream: true,
+    deferStream: true, // This helps with SSR/hydration issues
   });
 
   return (
