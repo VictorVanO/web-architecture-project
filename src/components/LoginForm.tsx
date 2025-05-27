@@ -1,11 +1,22 @@
-import { createSignal, Show } from 'solid-js'
-import { useSubmission } from '@solidjs/router'
+import { createSignal, Show, createEffect } from 'solid-js'
+import { useSubmission, useNavigate } from '@solidjs/router'
 import { loginAction } from '~/lib/auth/user'
 import LoginButton from './LoginButton'
 
 export default function LoginForm() {
+  const navigate = useNavigate()
   const loginSubmission = useSubmission(loginAction)
   const [error, setError] = createSignal('')
+  
+  // Handle successful login
+  createEffect(() => {
+    if (loginSubmission.result && !loginSubmission.pending) {
+      if (loginSubmission.result.success) {
+        // Redirect to home on successful login
+        navigate('/', { replace: true })
+      }
+    }
+  })
   
   return (
     <div class="w-full max-w-md mx-auto">
@@ -46,7 +57,7 @@ export default function LoginForm() {
           />
         </div>
         
-        <Show when={error() || (loginSubmission.result && loginSubmission.result.error)}>
+        <Show when={error() || (loginSubmission.result && !loginSubmission.result.success)}>
           <div class="mb-4 text-red-500 text-sm">
             {error() || loginSubmission.result?.error || 'Authentication failed'}
           </div>

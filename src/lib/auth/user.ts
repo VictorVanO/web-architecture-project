@@ -32,7 +32,7 @@ export const registerAction = action(async (formData: FormData) => {
     const hashedPassword = await hashPassword(user.password)
     
     // Add user to database
-    await db.user.create({
+    const newUser = await db.user.create({
       data: {
         email: user.email,
         password: hashedPassword,
@@ -43,14 +43,10 @@ export const registerAction = action(async (formData: FormData) => {
     const session = await getSession()
     await session.update({ email: user.email })
     
-    throw redirect('/')
+    return { success: true }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { success: false, error: 'Invalid input data' }
-    }
-    if (error instanceof Response) {
-      // This is a redirect, rethrow it
-      throw error
     }
     console.error('Registration error:', error)
     return { success: false, error: 'Registration failed' }
@@ -61,12 +57,19 @@ export const loginAction = action(async (formData: FormData) => {
   'use server'
   
   try {
-    const { email, password } = userSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-    })
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
     
-    const record = await db.user.findUnique({ where: { email } })
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' }
+    }
+    
+    // Validate input
+    const validatedData = userSchema.parse({ email, password })
+    
+    const record = await db.user.findUnique({ 
+      where: { email: validatedData.email } 
+    })
     
     if (!record) {
       return { success: false, error: 'User not found' }
@@ -76,22 +79,20 @@ export const loginAction = action(async (formData: FormData) => {
       return { success: false, error: 'Invalid login method. Please use OAuth.' }
     }
     
-    const loggedIn = await comparePasswords(password, record.password)
+    const loggedIn = await comparePasswords(validatedData.password, record.password)
     
-    if (loggedIn) {
-      const session = await getSession()
-      await session.update({ email })
-      throw redirect('/')
+    if (!loggedIn) {
+      return { success: false, error: 'Invalid credentials' }
     }
     
-    return { success: false, error: 'Invalid credentials' }
+    // Login successful - update session
+    const session = await getSession()
+    await session.update({ email: validatedData.email })
+    
+    return { success: true }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { success: false, error: 'Invalid input data' }
-    }
-    if (error instanceof Response) {
-      // This is a redirect, rethrow it
-      throw error
+      return { success: false, error: 'Invalid email or password format' }
     }
     console.error('Login error:', error)
     return { success: false, error: 'Login failed' }

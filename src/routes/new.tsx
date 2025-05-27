@@ -55,8 +55,10 @@ export default function New() {
   // Handle successful submission
   createEffect(() => {
     if (reviewSubmission.result && !reviewSubmission.pending) {
-      // Navigate to home or reviews page after successful submission
-      navigate('/', { replace: true })
+      if (reviewSubmission.result.success) {
+        // Navigate to home after successful submission
+        navigate('/', { replace: true })
+      }
     }
   })
   
@@ -336,7 +338,7 @@ export default function New() {
         </Show>
         
         {/* Error message */}
-        <Show when={error() || (reviewSubmission.result && reviewSubmission.result.error)}>
+        <Show when={error() || (reviewSubmission.result && reviewSubmission.result.success)}>
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
             <p>{error() || reviewSubmission.result?.error || 'An error occurred while submitting your review'}</p>
           </div>

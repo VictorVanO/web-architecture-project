@@ -1,12 +1,23 @@
-import { createSignal, Show } from 'solid-js'
-import { useSubmission } from '@solidjs/router'
+import { createSignal, Show, createEffect } from 'solid-js'
+import { useSubmission, useNavigate } from '@solidjs/router'
 import { registerAction } from '~/lib/auth/user'
 
 export default function RegisterForm() {
+  const navigate = useNavigate()
   const registerSubmission = useSubmission(registerAction)
   const [password, setPassword] = createSignal('')
   const [confirmPassword, setConfirmPassword] = createSignal('')
   const [error, setError] = createSignal('')
+  
+  // Handle successful registration
+  createEffect(() => {
+    if (registerSubmission.result && !registerSubmission.pending) {
+      if (registerSubmission.result.success) {
+        // Redirect to home on successful registration
+        navigate('/', { replace: true })
+      }
+    }
+  })
   
   const validatePasswords = () => {
     if (password() !== confirmPassword()) {
@@ -80,7 +91,7 @@ export default function RegisterForm() {
           />
         </div>
         
-        <Show when={error() || (registerSubmission.result && registerSubmission.result.error)}>
+        <Show when={error() || (registerSubmission.result && !registerSubmission.result.success)}>
           <div class="mb-4 text-red-500 text-sm">
             {error() || registerSubmission.result?.error || 'Registration failed'}
           </div>

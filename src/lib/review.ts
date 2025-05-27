@@ -3,6 +3,7 @@ import { db } from './db'
 import { z } from 'zod'
 import { requireAuth } from './auth/middleware'
 
+// Schema for validating review data
 const reviewSchema = z.object({
   restaurantId: z.coerce.number().int().positive(),
   review: z.string().optional(),
@@ -11,6 +12,7 @@ const reviewSchema = z.object({
   companions: z.array(z.coerce.number().int()).optional(),
 })
 
+// Schema for validating restaurant data
 const restaurantSchema = z.object({
   name: z.string().min(1),
   latitude: z.coerce.number(),
@@ -125,7 +127,7 @@ export const getAllUsers = query(async () => {
   'use server'
   const user = await requireAuth()
   
-  // 
+  // Only allow admins to get all users
   if (!user.admin) {
     return []
   }
@@ -148,75 +150,81 @@ export const addReview = async (form: FormData) => {
   'use server'
   const user = await requireAuth()
   
-  // Parse companion IDs from form data
-  const companionIds = form.getAll('companions')
-    .map(id => typeof id === 'string' ? parseInt(id) : null)
-    .filter((id): id is number => id !== null)
-  
-  // Get or create restaurant
-  let restaurantId: number
-  const existingRestaurantId = form.get('restaurantId')
-  
-  if (existingRestaurantId && typeof existingRestaurantId === 'string') {
-    restaurantId = parseInt(existingRestaurantId)
-  } else {
-    // Create new restaurant
-    const restaurant = restaurantSchema.parse({
-      name: form.get('restaurantName'),
-      latitude: form.get('latitude'),
-      longitude: form.get('longitude'),
-      address: form.get('address'),
-    })
+  try {
+    // Parse companion IDs from form data
+    const companionIds = form.getAll('companions')
+      .map(id => typeof id === 'string' ? parseInt(id) : null)
+      .filter((id): id is number => id !== null)
     
-    const newRestaurant = await db.restaurant.create({
-      data: restaurant
-    })
+    // Get or create restaurant
+    let restaurantId: number
+    const existingRestaurantId = form.get('restaurantId')
     
-    restaurantId = newRestaurant.id
-  }
-  
-  // Create the review
-  const reviewData = reviewSchema.parse({
-    restaurantId,
-    review: form.get('review'),
-    rating: form.get('rating'),
-    price: form.get('price'),
-    companions: companionIds,
-  })
-  
-  const review = await db.visit.create({
-    data: {
-      userId: user.id,
-      restaurantId: reviewData.restaurantId,
-      review: reviewData.review,
-      rating: reviewData.rating,
-      price: reviewData.price,
-      companions: {
-        connect: reviewData.companions?.map(id => ({ id })) || []
-      }
-    },
-    include: {
-      restaurant: true,
-      companions: true
+    if (existingRestaurantId && typeof existingRestaurantId === 'string') {
+      restaurantId = parseInt(existingRestaurantId)
+    } else {
+      // Create new restaurant
+      const restaurant = restaurantSchema.parse({
+        name: form.get('restaurantName'),
+        latitude: form.get('latitude'),
+        longitude: form.get('longitude'),
+        address: form.get('address'),
+      })
+      
+      const newRestaurant = await db.restaurant.create({
+        data: restaurant
+      })
+      
+      restaurantId = newRestaurant.id
     }
-  })
-
-  // Handle image uploads if any
-  const imageUrls = form.getAll('imageUrls')
-  
-  if (imageUrls.length > 0) {
-    const imageData = imageUrls.map(url => ({
-      url: url.toString(),
-      visitId: review.id
-    }))
     
-    // Create image records
-    await db.image.createMany({
-      data: imageData
+    // Create the review
+    const reviewData = reviewSchema.parse({
+      restaurantId,
+      review: form.get('review'),
+      rating: form.get('rating'),
+      price: form.get('price'),
+      companions: companionIds,
     })
+    
+    // Create the visit record first
+    const review = await db.visit.create({
+      data: {
+        userId: user.id,
+        restaurantId: reviewData.restaurantId,
+        review: reviewData.review,
+        rating: reviewData.rating,
+        price: reviewData.price,
+        companions: {
+          connect: reviewData.companions?.map(id => ({ id })) || []
+        }
+      },
+      include: {
+        restaurant: true,
+        companions: true
+      }
+    })
+
+    // Handle image uploads if any
+    const imageUrls = form.getAll('imageUrls')
+    
+    if (imageUrls.length > 0) {
+      const imageData = imageUrls.map(url => ({
+        url: url.toString(),
+        visitId: review.id
+      }))
+      
+      // Create image records
+      await db.image.createMany({
+        data: imageData
+      })
+    }
+    
+    return { success: true, review }
+  } catch (error) {
+    console.error('Add review error:', error)
+    return { success: false, error: 'Failed to add review' }
   }
-  
-  return review
 }
 
 // Action for adding a review
