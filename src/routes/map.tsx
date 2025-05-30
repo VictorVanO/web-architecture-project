@@ -74,6 +74,22 @@ export default function Map() {
     });
   };
 
+  const handleViewReviews = () => {
+    if (!selectedPlace()) return;
+    
+    // Navigate to the reviews page with the selected restaurant info
+    navigate('/reviews', { 
+      state: { 
+        restaurantInfo: {
+          name: selectedPlace().display_name?.split(',')[0] || 'Unknown Restaurant',
+          latitude: selectedPlace().lat,
+          longitude: selectedPlace().lon,
+          address: selectedPlace().display_name,
+        }
+      } 
+    });
+  };
+
   return (
     <main class="text-center mx-auto text-gray-700 p-4">
       <h1 class="text-4xl font-semibold my-8">Restaurants.</h1>
@@ -112,13 +128,22 @@ export default function Map() {
           </ul>
         )}
         
-        <Show when={selectedPlace() && user()}>
-          <div class="mt-4">
+        <Show when={selectedPlace()}>
+          <div class="mt-4 flex flex-col gap-3">
+            <Show when={user()}>
+              <button
+                onClick={handleAddReview}
+                class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+              >
+                Add a review for this restaurant
+              </button>
+            </Show>
+            
             <button
-              onClick={handleAddReview}
-              class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+              onClick={handleViewReviews}
+              class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
             >
-              Add a review for this restaurant
+              View all reviews
             </button>
           </div>
         </Show>

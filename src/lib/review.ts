@@ -50,6 +50,79 @@ export const getReviews = query(async () => {
   })
 }, 'getReviews')
 
+// Get reviews for a specific restaurant by name and coordinates
+export const getRestaurantReviews = query(async (restaurantName: string, latitude: number, longitude: number) => {
+  'use server'
+  
+  // Find restaurants that match the name and are within a reasonable distance
+  // Using a simple coordinate range check (can be improved with proper distance calculation)
+  const latRange = 0.001 // approximately 100 meters
+  const lonRange = 0.001
+  
+  const restaurants = await db.restaurant.findMany({
+    where: {
+      AND: [
+        {
+          OR: [
+            { name: { contains: restaurantName } },
+            { address: { contains: restaurantName } }
+          ]
+        },
+        {
+          latitude: {
+            gte: latitude - latRange,
+            lte: latitude + latRange
+          }
+        },
+        {
+          longitude: {
+            gte: longitude - lonRange,
+            lte: longitude + lonRange
+          }
+        }
+      ]
+    }
+  })
+
+  if (restaurants.length === 0) {
+    return []
+  }
+
+  // Get all visits for these restaurants
+  const restaurantIds = restaurants.map(r => r.id)
+  
+  return await db.visit.findMany({
+    where: {
+      restaurantId: {
+        in: restaurantIds
+      }
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        }
+      },
+      restaurant: true,
+      images: true,
+      companions: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+        }
+      }
+    },
+    orderBy: {
+      visitedAt: 'desc'
+    }
+  })
+}, 'getRestaurantReviews')
+
 // Get reviews for specific user
 export const getUserReviews = query(async (userId?: number) => {
   'use server'
@@ -232,7 +305,8 @@ export const addReview = async (form: FormData) => {
       revalidate('getUserReviews'),
       revalidate('getUser'), // This is crucial for navbar state
       revalidate('getFriends'),
-      revalidate('getAllUsers')
+      revalidate('getAllUsers'),
+      revalidate('getRestaurantReviews')
     ])
     
     return { success: true, review }
@@ -273,7 +347,8 @@ export const deleteReview = action(async (id: number) => {
   // Revalidate queries
   await Promise.all([
     revalidate('getReviews'),
-    revalidate('getUserReviews')
+    revalidate('getUserReviews'),
+    revalidate('getRestaurantReviews')
   ])
   
   return { success: true }
