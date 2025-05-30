@@ -38,7 +38,7 @@ export default function New() {
   const [error, setError] = createSignal('')
   const [images, setImages] = createSignal<string[]>([])
   
-  // For image preview
+  // For image preview - using base64 data URLs instead of object URLs
   const [imagePreviewUrls, setImagePreviewUrls] = createSignal<string[]>([])
   
   // Get restaurant info from the location state if coming from map
@@ -79,35 +79,39 @@ export default function New() {
     })
   }
   
-  // Handle image upload
-  const handleImageUpload = (e: Event) => {
+  // Convert file to base64 data URL
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+  
+  // Handle image upload - convert to base64 data URLs for storage
+  const handleImageUpload = async (e: Event) => {
     const input = e.target as HTMLInputElement
     if (!input.files || input.files.length === 0) return
     
-    // Create preview URLs for the images
     const fileArray = Array.from(input.files)
-    const newPreviews = fileArray.map(file => URL.createObjectURL(file))
     
-    // Store image URLs and update previews
-    setImages(prev => [...prev, ...fileArray.map(file => {
-      // In a real application, you would upload the file to a server
-      // and get a URL back. For now, we'll use a placeholder URL
-      return `/uploads/${file.name}`
-    })])
-    setImagePreviewUrls(prev => [...prev, ...newPreviews])
+    try {
+      // Convert all files to base64 data URLs
+      const dataUrls = await Promise.all(fileArray.map(file => fileToDataURL(file)))
+      
+      // Store the data URLs for both preview and form submission
+      setImages(prev => [...prev, ...dataUrls])
+      setImagePreviewUrls(prev => [...prev, ...dataUrls])
+    } catch (error) {
+      console.error('Error processing images:', error)
+      setError('Failed to process images. Please try again.')
+    }
   }
-  
-  // Clean up object URLs on component cleanup
-  onCleanup(() => {
-    imagePreviewUrls().forEach(url => URL.revokeObjectURL(url))
-  })
   
   // Remove an image from the preview
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index))
-    
-    // Also revoke the object URL to prevent memory leaks
-    URL.revokeObjectURL(imagePreviewUrls()[index])
     setImagePreviewUrls(prev => prev.filter((_, i) => i !== index))
   }
   
@@ -304,7 +308,7 @@ export default function New() {
               </div>
             </Show>
             
-            {/* Hidden inputs for image URLs */}
+            {/* Hidden inputs for image URLs - now using base64 data URLs */}
             <For each={images()}>
               {(imageUrl) => (
                 <input type="hidden" name="imageUrls" value={imageUrl} />
