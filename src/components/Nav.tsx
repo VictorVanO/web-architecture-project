@@ -53,14 +53,24 @@ export default function Nav() {
                 <span class="hidden sm:inline">
                   {userData().firstName || userData().email}
                 </span>
-                <form action={logoutAction} method="post">
-                  <button 
-                    type="submit"
-                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm"
+                
+                <div class="flex items-center gap-2">
+                  <a
+                    href="/profile"
+                    class={`border-b-2 ${active("/profile")} px-3 py-1 rounded-md text-sm hover:text-gray-500 transition-colors`}
                   >
-                    Logout
-                  </button>
-                </form>
+                    Profile
+                  </a>
+                  
+                  <form action={logoutAction} method="post">
+                    <button 
+                      type="submit"
+                      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm"
+                    >
+                      Logout
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </Show>
