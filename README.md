@@ -20,6 +20,8 @@ npm install
 
 # start the development server and open the app in a new browser tab
 npm run dev -- --open
+# or this for network access
+npx vinxi dev --host 0.0.0.0 --port 3000
 
 # install prisma for the databases
 npm install prisma --save-dev
@@ -34,7 +36,7 @@ npx prisma migrate dev --name init
 npx prisma migrate dev --name add-user
 
 # applies all pending migrations to the production database
-npx prisma migrate deploy"
+npx prisma migrate deploy
 ```
 
 ## Building
