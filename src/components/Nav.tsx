@@ -20,12 +20,6 @@ export default function Nav() {
           <li class={`border-b-2 ${active("/")} mx-1.5 sm:mx-6`}>
             <a class="hover:text-gray-500" href="/">EatReal.</a>
           </li>
-          <li class={`border-b-2 ${active("/about")} mx-1.5 sm:mx-6`}>
-            <a class="hover:text-gray-500" href="/about">About</a>
-          </li>
-          <li class={`border-b-2 ${active("/tasks")} mx-1.5 sm:mx-6`}>
-            <a class="hover:text-gray-500" href="/tasks">Tasks</a>
-          </li>
           <li class={`border-b-2 ${active("/map")} mx-1.5 sm:mx-6`}>
             <a class="hover:text-gray-500" href="/map">Map</a>
           </li>

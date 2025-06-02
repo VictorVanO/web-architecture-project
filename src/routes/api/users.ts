@@ -1,38 +1,23 @@
-// Can be removed, because implemented in src\routes\api\reviews.ts
 import type { APIEvent } from '@solidjs/start/server'
 import { db } from '~/lib/db'
 
 export async function GET(event: APIEvent) {
   try {
-    // Get 10 most recent reviews without authentication requirement
-    const reviews = await db.visit.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          }
-        },
-        restaurant: true,
-        images: true,
-        companions: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          }
-        }
-      },
-      orderBy: {
-        visitedAt: 'desc'
-      },
-      take: 10
+    // Get all users (for testing and admin purposes)
+    // Remove sensitive data like passwords
+    const users = await db.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        admin: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     })
 
-    return new Response(JSON.stringify(reviews), {
+    return new Response(JSON.stringify(users), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -42,8 +27,8 @@ export async function GET(event: APIEvent) {
       },
     })
   } catch (error) {
-    console.error('Error fetching recent reviews:', error)
-    return new Response(JSON.stringify({ error: 'Failed to fetch reviews' }), {
+    console.error('Error fetching users:', error)
+    return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
