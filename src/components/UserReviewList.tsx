@@ -1,38 +1,69 @@
 import { For, Show, createSignal } from 'solid-js'
-import { createAsyncStore, action, revalidate } from '@solidjs/router'
-import { getUserReviews, deleteReview } from '~/lib/review'
+import { createAsyncStore, action, revalidate, useSubmission } from '@solidjs/router'
+import { getUserReviews } from '~/lib/review'
 import { getUser } from '~/lib/auth/user'
+import { requireAuth } from '~/lib/auth/middleware'
+import { db } from '~/lib/db'
 
 interface UserReviewListProps {
   userId?: number
 }
 
-// Delete review action
+// Delete review action - simplified and more direct
 const deleteReviewAction = action(async (reviewId: number) => {
   'use server'
   
   try {
-    const user = await getUser()
-    if (!user) {
-      return { success: false, error: 'User not authenticated' }
+    console.log('Attempting to delete review:', reviewId)
+    const user = await requireAuth()
+    
+    // Get the review to check ownership
+    const review = await db.visit.findUnique({
+      where: { id: reviewId },
+      include: { user: true }
+    })
+    
+    if (!review) {
+      console.log('Review not found:', reviewId)
+      return { success: false, error: 'Review not found' }
     }
 
-    const result = await deleteReview(reviewId)
-    
-    if (result.success) {
-      // Revalidate the reviews data
-      await revalidate('getUserReviews')
-      return { success: true }
-    } else {
-      return result
+    // Only allow review owner or admin to delete
+    if (review.userId !== user.id && !user.admin) {
+      console.log('Unauthorized delete attempt:', { reviewUserId: review.userId, currentUserId: user.id, isAdmin: user.admin })
+      return { success: false, error: 'You can only delete your own reviews' }
     }
+    
+    console.log('Deleting images for review:', reviewId)
+    // Delete images first
+    await db.image.deleteMany({
+      where: { visitId: reviewId }
+    })
+    
+    console.log('Deleting review:', reviewId)
+    // Now delete the review
+    await db.visit.delete({
+      where: { id: reviewId }
+    })
+    
+    console.log('Review deleted successfully:', reviewId)
+    
+    // Revalidate queries
+    await Promise.all([
+      revalidate('getReviews'),
+      revalidate('getUserReviews'),
+      revalidate('getRestaurantReviews')
+    ])
+    
+    return { success: true }
   } catch (error) {
     console.error('Delete review error:', error)
-    return { success: false, error: 'Failed to delete review' }
+    return { success: false, error: `Failed to delete review: ${error.message}` }
   }
 }, 'deleteReview')
 
 export default function UserReviewList(props: UserReviewListProps) {
+  const deleteSubmission = useSubmission(deleteReviewAction)
   const [deletingReviewId, setDeletingReviewId] = createSignal<number | null>(null)
   
   const reviews = createAsyncStore(() => getUserReviews(props.userId), {
@@ -66,13 +97,24 @@ export default function UserReviewList(props: UserReviewListProps) {
     }
 
     setDeletingReviewId(reviewId)
+    console.log('Starting delete process for review:', reviewId)
     
     try {
-      const result = await deleteReviewAction(reviewId)
+      const response = await fetch('/api/reviews/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId })
+      })
+
+      const result = await response.json()
+      console.log('Delete result:', result)
       
       if (result.success) {
-        // The revalidation will automatically update the UI
         alert('Review deleted successfully!')
+        // Force reload the page to refresh the data
+        window.location.reload()
       } else {
         alert(result.error || 'Failed to delete review')
       }
