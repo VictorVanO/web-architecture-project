@@ -320,36 +320,45 @@ export const addReview = async (form: FormData) => {
 export const addReviewAction = action(addReview, 'addReview')
 
 // Delete a review
-export const deleteReview = action(async (id: number) => {
+export const deleteReview = async (id: number) => {
   'use server'
   const user = await requireAuth()
   
-  // Get the review to check ownership
-  const review = await db.visit.findUnique({
-    where: { id }
-  })
-  
-  // Only allow review owner or admin to delete
-  if (!review || (review.userId !== user.id && !user.admin)) {
-    return { success: false, error: 'Unauthorized' }
+  try {
+    // Get the review to check ownership
+    const review = await db.visit.findUnique({
+      where: { id },
+      include: { user: true }
+    })
+    
+    // Only allow review owner or admin to delete
+    if (!review || (review.userId !== user.id && !user.admin)) {
+      return { success: false, error: 'Unauthorized' }
+    }
+    
+    // Delete images first
+    await db.image.deleteMany({
+      where: { visitId: id }
+    })
+    
+    // Now delete the review
+    await db.visit.delete({
+      where: { id }
+    })
+    
+    // Revalidate queries
+    await Promise.all([
+      revalidate('getReviews'),
+      revalidate('getUserReviews'),
+      revalidate('getRestaurantReviews')
+    ])
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Delete review error:', error)
+    return { success: false, error: 'Failed to delete review' }
   }
-  
-  // Delete images first
-  await db.image.deleteMany({
-    where: { visitId: id }
-  })
-  
-  // Now delete the review
-  await db.visit.delete({
-    where: { id }
-  })
-  
-  // Revalidate queries
-  await Promise.all([
-    revalidate('getReviews'),
-    revalidate('getUserReviews'),
-    revalidate('getRestaurantReviews')
-  ])
-  
-  return { success: true }
-}, 'deleteReview')
+}
+
+// Action for deleting a review
+export const deleteReviewAction = action(deleteReview, 'deleteReview')

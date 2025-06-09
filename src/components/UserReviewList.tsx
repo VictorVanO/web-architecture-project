@@ -1,15 +1,43 @@
-import { For, Show } from 'solid-js'
-import { createAsyncStore } from '@solidjs/router'
-import { getUserReviews } from '~/lib/review'
+import { For, Show, createSignal } from 'solid-js'
+import { createAsyncStore, action, revalidate } from '@solidjs/router'
+import { getUserReviews, deleteReview } from '~/lib/review'
+import { getUser } from '~/lib/auth/user'
 
 interface UserReviewListProps {
   userId?: number
 }
 
+// Delete review action
+const deleteReviewAction = action(async (reviewId: number) => {
+  'use server'
+  
+  try {
+    const user = await getUser()
+    if (!user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    const result = await deleteReview(reviewId)
+    
+    if (result.success) {
+      // Revalidate the reviews data
+      await revalidate('getUserReviews')
+      return { success: true }
+    } else {
+      return result
+    }
+  } catch (error) {
+    console.error('Delete review error:', error)
+    return { success: false, error: 'Failed to delete review' }
+  }
+}, 'deleteReview')
+
 export default function UserReviewList(props: UserReviewListProps) {
+  const [deletingReviewId, setDeletingReviewId] = createSignal<number | null>(null)
+  
   const reviews = createAsyncStore(() => getUserReviews(props.userId), {
     initialValue: [],
-    deferStream: true, // This helps with SSR/hydration issues
+    deferStream: true,
   })
   
   const formatDate = (date: Date | string) => {
@@ -25,6 +53,35 @@ export default function UserReviewList(props: UserReviewListProps) {
     return Array.from({ length: 5 }, (_, i) => (
       <span class={i < rating ? "text-yellow-400" : "text-gray-300"}>★</span>
     ))
+  }
+
+  const handleEditReview = (review: any) => {
+    // Navigate to edit page with review data
+    window.location.href = `/edit-review/${review.id}?restaurantName=${encodeURIComponent(review.restaurant.name)}&latitude=${review.restaurant.latitude}&longitude=${review.restaurant.longitude}&address=${encodeURIComponent(review.restaurant.address || '')}&rating=${review.rating}&review=${encodeURIComponent(review.review || '')}&price=${encodeURIComponent(review.price || '')}`
+  }
+
+  const handleDeleteReview = async (reviewId: number, restaurantName: string) => {
+    if (!confirm(`Are you sure you want to delete your review for ${restaurantName}? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeletingReviewId(reviewId)
+    
+    try {
+      const result = await deleteReviewAction(reviewId)
+      
+      if (result.success) {
+        // The revalidation will automatically update the UI
+        alert('Review deleted successfully!')
+      } else {
+        alert(result.error || 'Failed to delete review')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('Failed to delete review. Please try again.')
+    } finally {
+      setDeletingReviewId(null)
+    }
   }
   
   return (
@@ -61,8 +118,39 @@ export default function UserReviewList(props: UserReviewListProps) {
         <div class="space-y-6">
           <For each={reviews()}>
             {(review) => (
-              <div class="bg-white rounded-lg shadow-md p-6 border">
-                <div class="flex justify-between items-start mb-4">
+              <div class="bg-white rounded-lg shadow-md p-6 border relative">
+                {/* Action Buttons - Top Right */}
+                <div class="absolute top-4 right-4 flex space-x-2">
+                  <button
+                    onClick={() => handleEditReview(review)}
+                    class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                    title="Edit review"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDeleteReview(review.id, review.restaurant.name)}
+                    disabled={deletingReviewId() === review.id}
+                    class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete review"
+                  >
+                    <Show 
+                      when={deletingReviewId() === review.id}
+                      fallback={
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      }
+                    >
+                      <div class="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                    </Show>
+                  </button>
+                </div>
+
+                <div class="flex justify-between items-start mb-4 pr-20">
                   <div>
                     <h3 class="text-xl font-semibold text-gray-900">
                       {review.restaurant.name}
